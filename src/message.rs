@@ -352,9 +352,17 @@ pub enum ResponseTab {
 
 #[derive(Debug, Clone)]
 pub enum WsMsg {
-    TextFrame(String),
-    Disconnected,
-    Error(String),
+    TextFrame {
+        tab_id: String,
+        text: String,
+    },
+    Disconnected {
+        tab_id: String,
+    },
+    Error {
+        tab_id: String,
+        error: String,
+    },
     Handshake {
         tab_id: String,
         sender: mpsc::Sender<String>,

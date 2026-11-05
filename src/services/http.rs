@@ -27,12 +27,8 @@ fn make_jwt(subject: &str, secret: &str) -> Result<String, String> {
         .map_err(|e| e.to_string())?
         .as_secs();
     let header = base64url(b"{\"alg\":\"HS256\",\"typ\":\"JWT\"}");
-    let payload_json = format!(
-        "{{\"sub\":\"{}\",\"iat\":{},\"exp\":{}}}",
-        subject.replace('"', "\\\""),
-        now,
-        now + 3600
-    );
+    let payload_json =
+        serde_json::json!({"sub": subject, "iat": now, "exp": now + 3600}).to_string();
     let payload = base64url(payload_json.as_bytes());
     let signing_input = format!("{header}.{payload}");
     let mut mac = HmacSha256::new_from_slice(secret.as_bytes()).map_err(|e| e.to_string())?;
@@ -40,6 +36,8 @@ fn make_jwt(subject: &str, secret: &str) -> Result<String, String> {
     let sig = base64url(&mac.finalize().into_bytes());
     Ok(format!("{signing_input}.{sig}"))
 }
+
+const MAX_RESPONSE_BYTES: usize = 64 * 1024 * 1024;
 
 const INLINE_BODY_THRESHOLD: usize = 10_000_000;
 
@@ -102,13 +100,22 @@ pub(crate) fn resolve_url(raw_url: &str, env: Option<&AppEnvironment>) -> String
     {
         return url.to_owned();
     }
-    let host = url.split('/').next().unwrap_or(url);
-    let host = host.split(':').next().unwrap_or(host).to_ascii_lowercase();
-    let local = matches!(host.as_str(), "localhost" | "127.0.0.1" | "::1")
-        || host.starts_with("127.")
-        || host.starts_with("10.")
-        || host.starts_with("192.168.")
-        || host.starts_with("172."); // covers 172.16-31.x.x private range
+    // Parse the authority: textual prefixes also match public DNS names and
+    // incorrectly treat the entire 172/8 range as private.
+    let parsed = reqwest::Url::parse(&format!("https://{url}"));
+    let host = parsed
+        .as_ref()
+        .ok()
+        .and_then(|u| u.host_str())
+        .unwrap_or("");
+    let local = host.eq_ignore_ascii_case("localhost")
+        || host
+            .trim_matches(['[', ']'])
+            .parse::<std::net::IpAddr>()
+            .is_ok_and(|ip| match ip {
+                std::net::IpAddr::V4(ip) => ip.is_loopback() || ip.is_private(),
+                std::net::IpAddr::V6(ip) => ip.is_loopback() || ip.is_unique_local(),
+            });
     format!("{}://{url}", if local { "http" } else { "https" })
 }
 
@@ -150,7 +157,7 @@ async fn do_send(
         let k = substitute(&h.key, env);
         let v = substitute(&h.value, env);
         let name = HeaderName::from_str(&k).map_err(|_| format!("Invalid header: {k}"))?;
-        let val = HeaderValue::from_str(&v).map_err(|_| format!("Invalid header value: {v}"))?;
+        let val = HeaderValue::from_str(&v).map_err(|_| format!("Invalid value for header {k}"))?;
         header_map.insert(name, val);
     }
 
@@ -309,10 +316,26 @@ async fn do_send(
         }
     }
 
-    let raw_bytes = response
-        .bytes()
+    // Enforce the limit before allocation and while streaming (including
+    // chunked/decoded bodies where Content-Length is absent or misleading).
+    if response
+        .content_length()
+        .is_some_and(|n| n > MAX_RESPONSE_BYTES as u64)
+    {
+        return Err("Response body exceeds 64 MiB limit".into());
+    }
+    let mut response = response;
+    let mut raw_bytes = Vec::new();
+    while let Some(chunk) = response
+        .chunk()
         .await
-        .map_err(|e| format!("Read body: {e}"))?;
+        .map_err(|e| format!("Read body: {e}"))?
+    {
+        if chunk.len() > MAX_RESPONSE_BYTES.saturating_sub(raw_bytes.len()) {
+            return Err("Response body exceeds 64 MiB limit".into());
+        }
+        raw_bytes.extend_from_slice(&chunk);
+    }
     let body_at = Instant::now();
     let us = |d: Duration| d.as_micros() as u64;
     let timing = crate::domain::response::ResponseTiming {
@@ -482,6 +505,8 @@ pub struct TlsOptions {
 /// needs a fresh client (callers drop their cached one — see `AppState::http`).
 pub fn build_client_with(options: TlsOptions) -> Client {
     let mut builder = Client::builder()
+        .redirect(safe_redirect_policy())
+        .connect_timeout(Duration::from_secs(15))
         .cookie_store(true)
         .user_agent(concat!("rustman/", env!("CARGO_PKG_VERSION")));
 
@@ -532,8 +557,28 @@ pub fn build_client() -> Client {
     default_client()
 }
 
+// Custom API-key headers cannot be reliably enumerated. Keep redirects
+// within the original origin so credentials never cross host/port/scheme.
+fn safe_redirect_policy() -> reqwest::redirect::Policy {
+    reqwest::redirect::Policy::custom(|attempt| {
+        if attempt.previous().len() >= 10 {
+            attempt.error("Too many redirects")
+        } else if attempt
+            .previous()
+            .first()
+            .is_some_and(|u| u.origin() == attempt.url().origin())
+        {
+            attempt.follow()
+        } else {
+            attempt.stop()
+        }
+    })
+}
+
 fn default_client() -> Client {
     Client::builder()
+        .redirect(safe_redirect_policy())
+        .connect_timeout(Duration::from_secs(15))
         .cookie_store(true)
         .user_agent(concat!("rustman/", env!("CARGO_PKG_VERSION")))
         .build()
@@ -939,5 +984,149 @@ mod live_tests {
             serde_json::from_str(&result.response.body).expect("server response should be JSON");
         assert_eq!(parsed["received_fields"]["conta"], "sync_dep_1");
         assert_eq!(parsed["received_fields"]["modulo"], "SYNC");
+    }
+}
+
+#[cfg(test)]
+mod security_tests {
+    use super::*;
+    use std::io::{Read, Write};
+    use std::net::TcpListener;
+
+    #[test]
+    fn transport_security_private_ip_lookalike_domains_default_to_https() {
+        for host in [
+            "127.attacker.example",
+            "10.attacker.example",
+            "192.168.attacker.example",
+            "172.attacker.example",
+            "172.15.1.1",
+            "172.32.1.1",
+        ] {
+            assert_eq!(resolve_url(host, None), format!("https://{host}"));
+        }
+        for host in [
+            "127.0.0.1",
+            "10.1.2.3",
+            "172.16.1.1",
+            "172.31.255.255",
+            "192.168.1.1",
+            "[::1]:8000",
+        ] {
+            assert_eq!(resolve_url(host, None), format!("http://{host}"));
+        }
+    }
+
+    fn server(response: String) -> (String, std::thread::JoinHandle<String>) {
+        let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+        let url = format!("http://{}", listener.local_addr().unwrap());
+        let handle = std::thread::spawn(move || {
+            listener.set_nonblocking(true).unwrap();
+            let deadline = Instant::now() + Duration::from_secs(8);
+            let (mut stream, _) = loop {
+                match listener.accept() {
+                    Ok(stream) => break stream,
+                    Err(e)
+                        if e.kind() == std::io::ErrorKind::WouldBlock
+                            && Instant::now() < deadline =>
+                    {
+                        std::thread::sleep(Duration::from_millis(5))
+                    }
+                    Err(e) => panic!("fixture accept failed: {e}"),
+                }
+            };
+            stream
+                .set_read_timeout(Some(Duration::from_secs(5)))
+                .unwrap();
+            let mut received = Vec::new();
+            let mut byte = [0];
+            while stream.read(&mut byte).unwrap_or(0) != 0 {
+                received.push(byte[0]);
+                if received.ends_with(b"\r\n\r\n") {
+                    break;
+                }
+            }
+            stream.write_all(response.as_bytes()).unwrap();
+            stream.flush().unwrap();
+            // Graceful half-close/drain avoids Windows issuing a TCP reset
+            // when the fixture drops a socket while the client is finishing.
+            let _ = stream.shutdown(std::net::Shutdown::Write);
+            let mut remaining = [0u8; 1024];
+            while stream.read(&mut remaining).unwrap_or(0) != 0 {}
+            String::from_utf8(received).unwrap()
+        });
+        (url, handle)
+    }
+
+    #[tokio::test]
+    async fn transport_security_cross_origin_redirect_does_not_forward_api_key() {
+        let (target, captured) =
+            server("HTTP/1.1 200 OK\r\nContent-Length: 2\r\nConnection: close\r\n\r\nok".into());
+        let (source, initial) = server(format!(
+            "HTTP/1.1 302 Found\r\nLocation: {target}/stolen\r\nContent-Length: 0\r\nConnection: close\r\n\r\n"
+        ));
+        let mut request = SavedRequest::new_in(String::new(), "redirect".into());
+        request.url = source;
+        request.auth_type = AuthType::ApiKey;
+        request.api_key_location = ApiKeyLocation::Header;
+        request.api_key_name = "x-synthetic-api-key".into();
+        request.api_key_value = "synthetic-redirect-secret".into();
+        let response = send(&build_client(), "test".into(), &request, None, 5000)
+            .await
+            .response;
+        let _ = reqwest::Client::builder()
+            .no_proxy()
+            .timeout(Duration::from_secs(2))
+            .build()
+            .unwrap()
+            .get(&target)
+            .send()
+            .await;
+        let wire = captured.join().unwrap();
+        initial.join().unwrap();
+        assert!(
+            !wire.contains("synthetic-redirect-secret"),
+            "cross-origin target received API key: {wire}"
+        );
+        assert_eq!(
+            response.status, 302,
+            "fixture send failed: {:?}",
+            response.error
+        );
+    }
+
+    #[tokio::test]
+    async fn transport_security_oversized_body_is_rejected_before_reading() {
+        let (url, fixture) = server(
+            "HTTP/1.1 200 OK\r\nContent-Length: 1073741824\r\nConnection: close\r\n\r\n".into(),
+        );
+        let mut request = SavedRequest::new_in(String::new(), "large".into());
+        request.url = url;
+        let response = send(&build_client(), "test".into(), &request, None, 5000)
+            .await
+            .response;
+        fixture.join().unwrap();
+        assert!(
+            response
+                .error
+                .as_deref()
+                .unwrap_or("")
+                .contains("Response body exceeds"),
+            "{:?}",
+            response.error
+        );
+    }
+
+    #[test]
+    fn transport_security_jwt_subject_is_json_escaped() {
+        let subject = "synthetic\\\",\"admin\":true,\"x\":\"ไทย 한국 一";
+        let token = make_jwt(subject, "synthetic-key").unwrap();
+        let payload = general_purpose::URL_SAFE_NO_PAD
+            .decode(token.split('.').nth(1).unwrap())
+            .unwrap();
+        let parsed: serde_json::Value =
+            serde_json::from_slice(&payload).expect("valid JSON claims");
+        assert_eq!(parsed["sub"], subject);
+        assert!(parsed.get("admin").is_none());
     }
 }

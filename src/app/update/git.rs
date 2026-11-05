@@ -10,6 +10,13 @@ use crate::services::repos::{self, GitRepo};
 use crate::services::{storage, vcs};
 
 pub(super) fn handle(state: &mut AppState, msg: GitMsg) -> Task<Message> {
+    // A locked/failed database is not an empty workspace. Never export that
+    // empty boot state over existing shared snapshots, or commit its deletions.
+    if state.db.is_none() {
+        state.git_busy = false;
+        state.status_message = Some("Git is unavailable while local storage is locked. Restore access and restart; repository files were not changed.".into());
+        return Task::none();
+    }
     match msg {
         GitMsg::Refresh => {
             crate::app::request_ops::flush_modified_tabs(state);
@@ -564,7 +571,6 @@ fn owned_ids(repos: &[GitRepo], all_collection_ids: &[String], repo_id: &str) ->
     }
 }
 
-
 /// Remove a collection, its folders and its requests from state and the DB.
 fn remove_collection(state: &mut AppState, id: &str) {
     let group_ids = crate::app::tree::groups_under(state, id);
@@ -606,6 +612,25 @@ fn apply_global_script(state: &mut AppState, global_script: Option<(String, Stri
 #[cfg(test)]
 mod restore_tests {
     use super::*;
+
+    #[test]
+    fn security_storage_failure_schedules_no_git_write_or_commit() {
+        let dir = std::env::temp_dir().join(format!("rustman-locked-git-{}", uuid::Uuid::new_v4()));
+        let (mut state, _) = crate::app::boot::init_at(dir.clone());
+        state.db = None;
+        state.git_commit_message = "must remain retryable".into();
+        for action in [GitMsg::Refresh, GitMsg::Commit] {
+            let task = handle(&mut state, action);
+            assert_eq!(
+                task.units(),
+                0,
+                "unavailable storage must not schedule Git writes"
+            );
+        }
+        assert_eq!(state.git_commit_message, "must remain retryable");
+        drop(state);
+        std::fs::remove_dir_all(dir).unwrap();
+    }
 
     fn repo(id: &str, cols: &[&str]) -> GitRepo {
         GitRepo {

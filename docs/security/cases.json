@@ -1,0 +1,348 @@
+{
+  "updated": "2026-11-05",
+  "scope": "Rustman local authorized audit. RCE testing excluded. No real secrets.",
+  "cases": [
+    {
+      "id": "SEC-001",
+      "title": "Plaintext local secret payloads",
+      "severity": "High",
+      "status": "Fix verified on Windows; see case limitations and remaining gates",
+      "source": "src/services/storage.rs; src/services/storage/vault.rs; src/services/keychain.rs",
+      "evidence": "Pre-fix test exposed environment plaintext. Post-fix env/history/raw disk/reopen and migration/tamper tests passed. AES-GCM payload encryption is implemented, not full-database encryption. Final checks: default suite 361 passed/3 ignored; feature-disabled suite 337 passed/3 ignored; production cargo check passed. Independent read-only review found no critical/important introduced regressions in reviewed changes. Native production keychain-module smoke check also PASSED on Windows: create/read 256-bit synthetic key, trusted migration-state roundtrip, and deletion verified. No real credential values or user DB accessed.",
+      "next_step": "Native full-app isolated UI smoke, recovery/backup UX, cross-platform keystores/permissions, whole-file replacement/rollback limits, plaintext Git/export/temp artifacts remain outside this verified payload-encryption boundary."
+    },
+    {
+      "id": "SEC-002",
+      "title": "API-key disclosure across redirect origins",
+      "severity": "High",
+      "status": "Fix verified on Windows; see case limitations and remaining gates",
+      "source": "src/services/http.rs",
+      "evidence": "Synthetic header was observed at a different loopback origin before fix. Same-origin-only redirect policy now passes this regression. Final checks: default suite 361 passed/3 ignored; feature-disabled suite 337 passed/3 ignored; production cargo check passed. Independent read-only review found no critical/important introduced regressions in reviewed changes.",
+      "next_step": "Positive same-origin redirect and downgrade/port matrix; full requester suite."
+    },
+    {
+      "id": "SEC-003",
+      "title": "Public DNS names default to plaintext HTTP",
+      "severity": "High",
+      "status": "Fix verified on Windows; see case limitations and remaining gates",
+      "source": "src/services/http.rs::resolve_url",
+      "evidence": "String-prefix matching treated 127.attacker.example and public 172 addresses as private. Parsed IP classification regression now passes. Final checks: default suite 361 passed/3 ignored; feature-disabled suite 337 passed/3 ignored; production cargo check passed. Independent read-only review found no critical/important introduced regressions in reviewed changes.",
+      "next_step": "Expand Unicode/authority/IPv6/explicit-scheme cases; do not block intentional local APIs."
+    },
+    {
+      "id": "SEC-004",
+      "title": "Unbounded HTTP response buffering",
+      "severity": "Medium",
+      "status": "Fix verified on Windows; see case limitations and remaining gates",
+      "source": "src/services/http.rs",
+      "evidence": "Pre-fix Content-Length limit test failed. 64 MiB cap now checks header and streamed chunks. Final checks: default suite 361 passed/3 ignored; feature-disabled suite 337 passed/3 ignored; production cargo check passed. Independent read-only review found no critical/important introduced regressions in reviewed changes.",
+      "next_step": "Chunked response regression; verify limits on decoded content and preview processing."
+    },
+    {
+      "id": "SEC-005",
+      "title": "WebSocket task/socket survives disposal",
+      "severity": "Medium",
+      "status": "Fix verified on Windows; see case limitations and remaining gates",
+      "source": "src/services/websocket.rs",
+      "evidence": "Pre-fix disposal test failed; post-fix test passed with abort-on-handle-drop. Handshake/frame/message limits added. Final checks: default suite 361 passed/3 ignored; feature-disabled suite 337 passed/3 ignored; production cargo check passed. Independent read-only review found no critical/important introduced regressions in reviewed changes.",
+      "next_step": "Handshake stall, oversized messages and queued-event cancellation tests."
+    },
+    {
+      "id": "SEC-006",
+      "title": "Invalid JWT JSON for escaped subjects",
+      "severity": "Low",
+      "status": "Fix verified on Windows; see case limitations and remaining gates",
+      "source": "src/services/http.rs::make_jwt",
+      "evidence": "Backslash/quote/multilingual subject produced invalid signed JSON. serde_json serialization passes regression. Claim injection was not demonstrated. Final checks: default suite 361 passed/3 ignored; feature-disabled suite 337 passed/3 ignored; production cargo check passed. Independent read-only review found no critical/important introduced regressions in reviewed changes.",
+      "next_step": "Full auth tests."
+    },
+    {
+      "id": "SEC-007",
+      "title": "Updater lacks enforced release authenticity",
+      "severity": "High",
+      "status": "Code fixed; release configuration OPEN",
+      "source": "src/services/update.rs; .github/workflows/release.yml",
+      "evidence": "24 focused updater tests passed. Install now refuses missing pinned public key and verifies signed checksums/hash/version binding. Existing workflow has no signing setup.",
+      "next_step": "Configure real release public key, offline/protected signing procedure and signed integration fixtures. Never commit private key."
+    },
+    {
+      "id": "SEC-008",
+      "title": "Predictable updater staging path",
+      "severity": "Medium",
+      "status": "Fix verified on Windows; see case limitations and remaining gates",
+      "source": "src/services/update.rs",
+      "evidence": "Fixed staging filename replaced with randomized exclusive staging and cleanup. Final checks: default suite 361 passed/3 ignored; feature-disabled suite 337 passed/3 ignored; production cargo check passed. Independent read-only review found no critical/important introduced regressions in reviewed changes.",
+      "next_step": "Cross-platform filesystem verification."
+    },
+    {
+      "id": "SEC-009",
+      "title": "Updater archive/download resource abuse",
+      "severity": "Medium",
+      "status": "Fix verified on Windows; see case limitations and remaining gates",
+      "source": "src/services/update.rs",
+      "evidence": "Archive, executable, metadata, entry-count and deadline limits added. Strict exact asset/version/URL checks. Final checks: default suite 361 passed/3 ignored; feature-disabled suite 337 passed/3 ignored; production cargo check passed. Independent read-only review found no critical/important introduced regressions in reviewed changes.",
+      "next_step": "Signed release integration and native replacement on all supported platforms."
+    },
+    {
+      "id": "SEC-010",
+      "title": "Collection ID used as filesystem path",
+      "severity": "High",
+      "status": "Fix verified on Windows; see case limitations and remaining gates",
+      "source": "src/services/vcs.rs::write_working_tree",
+      "evidence": "Portable ASCII ID allowlist rejects traversal, separators, absolute/drive/UNC paths, dots, encoded traversal, reserved Windows names, NUL and Unicode/confusable IDs. Full batch validation rejects case-insensitive duplicates before writes. VCS containment/staging suite: 3 passed. Unicode display names remain supported. Final checks: default suite 361 passed/3 ignored; feature-disabled suite 337 passed/3 ignored; production cargo check passed. Independent read-only review found no critical/important introduced regressions in reviewed changes.",
+      "next_step": "Maintain regression matrix; final full suite after review fixes. Snapshot destinations reject links/non-regular files, writes use exclusive randomized staging and rename."
+    },
+    {
+      "id": "SEC-011",
+      "title": "Cleanup deletes unrelated JSON files",
+      "severity": "Medium",
+      "status": "Fix verified on Windows; see case limitations and remaining gates",
+      "source": "src/services/vcs.rs::write_working_tree",
+      "evidence": "Writer deletes only recognized collection snapshots whose IDs match filenames, preserves unrelated JSON, validates destination collisions and refuses overwrites. Three focused VCS tests passed. Review regression SEC-026 remains to repair for oversized/binary unrelated JSON. Final checks: default suite 361 passed/3 ignored; feature-disabled suite 337 passed/3 ignored; production cargo check passed. Independent read-only review found no critical/important introduced regressions in reviewed changes.",
+      "next_step": "Resolve SEC-026 and verify again; do not claim all unrelated-file cases are closed yet."
+    },
+    {
+      "id": "SEC-012",
+      "title": "Broad Git staging includes unrelated secrets",
+      "severity": "High",
+      "status": "Fix verified on Windows; see case limitations and remaining gates",
+      "source": "src/services/vcs.rs::commit",
+      "evidence": "After cleanup fix, isolated regression demonstrated private.txt entered a commit from preexisting staging. Commit now builds an independent index from HEAD plus recognized snapshots, preserving unrelated staging. Post-fix VCS suite: 3 passed. Final checks: default suite 361 passed/3 ignored; feature-disabled suite 337 passed/3 ignored; production cargo check passed. Independent read-only review found no critical/important introduced regressions in reviewed changes.",
+      "next_step": "Add retained HEAD/deletion/conflict edge tests and complete final full suite. SEC-013 inline credentials in recognized snapshots is separate and still OPEN."
+    },
+    {
+      "id": "SEC-013",
+      "title": "Inline request credentials serialized to Git/export",
+      "severity": "High",
+      "status": "Source-confirmed; OPEN",
+      "source": "src/services/vcs.rs; src/services/import/mod.rs::native_export",
+      "evidence": "SavedRequest includes bearer/basic/API-key/cookie/JWT values; full clones are serialized without redaction. AES protection of SQLite does not protect these files.",
+      "next_step": "Separate explicit export semantics from shared Git publication; guard/redact with local data preservation and tests."
+    },
+    {
+      "id": "SEC-014",
+      "title": "Mutable GitHub Action references",
+      "severity": "Medium hardening",
+      "status": "Source-confirmed exposure; no compromise demonstrated",
+      "source": ".github/workflows/ci-iced.yml; .github/workflows/release.yml",
+      "evidence": "checkout@v4, rust-toolchain@stable, rust-cache@v2 and action-gh-release@v2 are mutable refs; release jobs have contents:write.",
+      "next_step": "Resolve reviewed upstream commits, pin full SHAs, restrict workflow permissions and use locked dependency builds."
+    },
+    {
+      "id": "SEC-015",
+      "title": "Dependency identity / typosquatting review",
+      "severity": "Unrated",
+      "status": "Inventory only; INCONCLUSIVE",
+      "source": "Cargo.toml; Cargo.lock",
+      "evidence": "766 locked packages, registry checksums present, no non-ASCII package names; two Git sources under rust-man-org locked to exact commit. These facts do not establish trusted ownership or absence of malicious code.",
+      "next_step": "Capture inventory; verify direct crate identities and Git commit provenance; review transitives/build scripts and registry policy."
+    },
+    {
+      "id": "SEC-016",
+      "title": "Dependency advisory audit tooling unavailable",
+      "severity": "Release verification gate",
+      "status": "Alternative RustSec scan completed; CLI install remains unavailable",
+      "source": "cargo-audit toolchain",
+      "evidence": "0.21.2 cannot parse CVSS 4.0 advisory. Installing 0.22.2 failed in aws-lc-sys native compilation. No successful current advisory report yet. Official RustSec 0.33.0 library with default features disabled successfully scanned the local advisory DB and Cargo.lock; report saved in rustsec-report.json: 2 vulnerability matches, 13 unmaintained warnings, 1 unsound warning.",
+      "next_step": "Preserve reproducible helper source/report and triage dependency reachability. Do not describe the report as a clean audit."
+    },
+    {
+      "id": "SEC-017",
+      "title": "Import scan queues entries before bounding traversal",
+      "severity": "Medium availability candidate",
+      "status": "Fix verified on Windows; see case limitations and remaining gates",
+      "source": "src/services/import/resources.rs::collect_files",
+      "evidence": "visited > 2048 is checked on pop, but read_dir pushes arbitrary eligible children without pending-size check. File sizes are capped; directory enumeration/queue may exceed intended entry cap. Both folder readers can enumerate arbitrarily many ignored files without counting them toward entry limits. A bounded fixture with 2049 empty ignored files was added; result pending. Red test failed on 2049 empty ignored files. Both scan paths now count discovered entries including ignored children before enqueueing; test passed. Final checks: default suite 361 passed/3 ignored; feature-disabled suite 337 passed/3 ignored; production cargo check passed. Independent read-only review found no critical/important introduced regressions in reviewed changes.",
+      "next_step": "Complete final full/default-disabled/native checks and cross-platform/native UI review; retain case-specific limitations above."
+    },
+    {
+      "id": "SEC-018",
+      "title": "Secrets visible after decryption / missing output redaction",
+      "severity": "High disclosure boundary",
+      "status": "Known auth/cookie display and diagnostic paths hardened; broader output policy remains OPEN",
+      "source": "Cookie/auth/environment UI; snippet; clipboard; logs; export",
+      "evidence": "Pre-fix console test leaked synthetic cookie/bearer. Post-fix exact-known-value redaction passed while original request cookie remained unchanged. Auth inputs now secure=true; response cookie/sensitive-header views mask values; manually entered sensitive request headers use secure cells with no plaintext oversized preview. Regression run excluding then-open Git tests: 348 passed, 3 ignored. Review found response-only and newly scripted header values need additional handling (SEC-025). Clipboard/export/bulk/raw response paths are not declared closed.",
+      "next_step": "Resolve SEC-025, review explicit reveal/copy/export/bulk/raw body boundaries and add native visual verification. Redaction is known-value/name-based, not a guarantee against arbitrary encoded or split secrets."
+    },
+    {
+      "id": "SEC-019",
+      "title": "quick-xml duplicate-attribute CPU exhaustion advisory",
+      "severity": "High upstream; Rustman reachability limited to build path identified",
+      "status": "Lockfile match confirmed; OPEN",
+      "source": "Cargo.lock: quick-xml 0.39.4 <- wayland-scanner 0.31.10",
+      "evidence": "Official RustSec report matched RUSTSEC-2026-0194; fixed >=0.41.0. Current calamine uses quick-xml 0.42.0 and plist uses 0.41.0. Runtime response exploitation is not established. No exhaustion payload run.",
+      "next_step": "Review upstream wayland-scanner upgrade/backport and build-time XML trust boundaries; preserve full report.",
+      "references": [
+        "https://rustsec.org/advisories/RUSTSEC-2026-0194.html"
+      ]
+    },
+    {
+      "id": "SEC-020",
+      "title": "quick-xml namespace allocation exhaustion advisory",
+      "severity": "High upstream; application exploitability not demonstrated",
+      "status": "Dependency match retained; affected API not found in identified consumer",
+      "source": "Cargo.lock: quick-xml 0.39.4 <- wayland-scanner 0.31.10",
+      "evidence": "RustSec RUSTSEC-2026-0195 requires NsReader/NamespaceResolver paths. Dependency presence alone does not prove that wayland-scanner invokes that affected API. Fixed >=0.41.0. No OOM test run. Source inspection: wayland-scanner parse.rs imports plain Reader; no NsReader or NamespaceResolver use found. Thus the identified consumer does not establish the advisory-specific affected path.",
+      "next_step": "Inspect actual quick-xml APIs used by wayland-scanner; triage build-only/reachability separately from presence.",
+      "references": [
+        "https://rustsec.org/advisories/RUSTSEC-2026-0195.html"
+      ]
+    },
+    {
+      "id": "SEC-021",
+      "title": "Transitive lru panic-safety unsoundness advisory",
+      "severity": "Informational unsound; prerequisites require review",
+      "status": "Dependency warning retained; documented trigger not supported by identified key type",
+      "source": "Cargo.lock: lru 0.16.4 <- cryoglyph 0.1.0",
+      "evidence": "RUSTSEC-2026-0253 warning requires unwinding/catch_unwind and a key with potentially panicking Drop. Rustman direct lru is 0.18.5; release profile panic=abort. Do not claim RCE or demonstrated memory corruption in Rustman. cryoglyph uses LruCache<cosmic_text::CacheKey,...>; cosmic-text 0.15.0 CacheKey derives Copy. This key cannot implement the panicking Drop required by the advisory. No runtime exploitability established.",
+      "next_step": "Review cryoglyph key/drop usage and upstream replacement/upgrade. RCE tests remain excluded.",
+      "references": [
+        "https://rustsec.org/advisories/RUSTSEC-2026-0253.html"
+      ]
+    },
+    {
+      "id": "SEC-022",
+      "title": "Unmaintained dependency notices",
+      "severity": "Maintenance risk, not proof of exploitable vulnerability",
+      "status": "13 report entries captured; triage pending",
+      "source": "docs/security/rustsec-report.json",
+      "evidence": "Notices include bincode, paste, pin-utils, rustybuzz, ttf-parser, unsafe-libyaml, yaml-rust, zbus_names and zvariant families. Some notices repeat across versions. Includes dependencies introduced by native-keyring integration.",
+      "next_step": "Map platform/runtime/build reachability and upstream migrations; do not count notices as 13 proven security exploits."
+    },
+    {
+      "id": "SEC-023",
+      "title": "Unavailable database can trigger empty Git snapshot writes",
+      "severity": "High data loss",
+      "status": "Fix verified on Windows; see case limitations and remaining gates",
+      "source": "src/app/boot.rs; src/app/update/git.rs::refresh_task/load_view/Commit",
+      "evidence": "Boot failure (including missing/locked OS keychain) sets db=None and empty state; Git refresh still writes that empty collection list/global script pair. The managed writer can remove real snapshots. This was possible for baseline SQLite errors; keychain dependency adds a normal failure trigger. New test asserts no Git task is scheduled when db=None; result pending. Red test scheduled one task when db=None; handler now returns no tasks and preserves commit input. UI hides Git controls while storage unavailable; regression passed. Final checks: default suite 361 passed/3 ignored; feature-disabled suite 337 passed/3 ignored; production cargo check passed. Independent read-only review found no critical/important introduced regressions in reviewed changes.",
+      "next_step": "Complete final full/default-disabled/native checks and cross-platform/native UI review; retain case-specific limitations above."
+    },
+    {
+      "id": "SEC-024",
+      "title": "Deleted migration marker can authorize plaintext reinjection",
+      "severity": "Medium integrity",
+      "status": "Fix verified on Windows; see case limitations and remaining gates",
+      "source": "src/services/storage/vault.rs::migrate",
+      "evidence": "Migration trusts absence of local_vault.format. Removing that row and inserting plaintext into an already encrypted DB causes it to be encrypted and accepted with legitimate key. New regression requires failure; result pending. Red downgrade test failed as predicted. Completion flag now resides in separate OS credential metadata; missing DB format after completion and mixed legacy states are rejected. Synthetic-key regression passed. This does not authenticate the entire database or prevent whole-file replacement/rollback; native OS metadata smoke test remains open. Final checks: default suite 361 passed/3 ignored; feature-disabled suite 337 passed/3 ignored; production cargo check passed. Independent read-only review found no critical/important introduced regressions in reviewed changes.",
+      "next_step": "Per-payload authentication and trusted migration marker are verified; this is not whole-database rollback/replacement protection. Native marker lifecycle passed on Windows; cross-platform integration remains."
+    },
+    {
+      "id": "SEC-025",
+      "title": "Response-only and newly scripted auth secrets bypass log redaction",
+      "severity": "Medium disclosure",
+      "status": "Fix verified on Windows; see case limitations and remaining gates",
+      "source": "src/app/scripting.rs::run_and_apply/apply_effects",
+      "evidence": "Current redactor gathers tab/env secrets only. Response-only Set-Cookie values passed in HostInput and new SetHeader Authorization values are not included; logs can expose them. New synthetic regression added; result pending. Red test printed response-only cookie. Redactor now collects sensitive HostInput header/cookie values and new sensitive SetHeader effects. Regression passed while actual extra header remains original. Final checks: default suite 361 passed/3 ignored; feature-disabled suite 337 passed/3 ignored; production cargo check passed. Independent read-only review found no critical/important introduced regressions in reviewed changes.",
+      "next_step": "Complete final full/default-disabled/native checks and cross-platform/native UI review; retain case-specific limitations above."
+    },
+    {
+      "id": "SEC-026",
+      "title": "Bounded managed-file reader rejects unrelated oversized/binary JSON",
+      "severity": "Medium availability regression",
+      "status": "Fix verified on Windows; see case limitations and remaining gates",
+      "source": "src/services/vcs.rs::managed_collection",
+      "evidence": "Independent review found eager reading before ownership recognition. Added bounded test with sparse 32 MiB+1 unrelated JSON and 2-byte non-UTF8 JSON; test failed on UTF-8 read. These files must be preserved and ignored rather than blocking valid collection operations. Managed discovery now reads bounded bytes and ignores oversized/invalid JSON. Explicit destination collision refusal remains. Regression passed. Final checks: default suite 361 passed/3 ignored; feature-disabled suite 337 passed/3 ignored; production cargo check passed. Independent read-only review found no critical/important introduced regressions in reviewed changes.",
+      "next_step": "Complete final full/default-disabled/native checks and cross-platform/native UI review; retain case-specific limitations above."
+    },
+    {
+      "id": "SEC-027",
+      "title": "Masked snippet preview and unmasked clipboard action differ",
+      "severity": "Low UX disclosure boundary",
+      "status": "Label clarified; original-value copy remains explicit",
+      "source": "src/ui/snippet_panel.rs; src/app/update/mod.rs; src/ui/request/header.rs",
+      "evidence": "Panel Copy resolves real environment/credential values while preview is masked. Tooltip/status now explicitly say unmasked; cURL export label likewise. Explicit copy is an intentional secret export, not an encryption bypass.",
+      "next_step": "Consider a separate copy-redacted action; review clipboard retention policy without silently breaking runnable exports."
+    },
+    {
+      "id": "SEC-028",
+      "title": "Bulk header editor reveals secure-cell values",
+      "severity": "Low UX disclosure boundary",
+      "status": "Explicit editing boundary; label clarified",
+      "source": "src/ui/request/headers.rs; src/app/update/request.rs::HeadersBulkToggle",
+      "evidence": "Header table masks known sensitive cells, but explicit Bulk Edit serializes originals to editor. Label now says Bulk Edit (unmasked). Request values remain intact.",
+      "next_step": "Native visual verification; decide whether a separate reveal control is required for this explicit edit surface."
+    },
+    {
+      "id": "SEC-029",
+      "title": "Browser preview leaves plaintext response in temporary HTML",
+      "severity": "Medium confidentiality",
+      "status": "Source-confirmed; OPEN",
+      "source": "src/app/update/response.rs::OpenBodyInBrowser",
+      "evidence": "Explicit browser preview writes full response to predictable PID/time-named temp HTML with no lifecycle cleanup. It can retain response secrets outside encrypted SQLite. No browser execution or execution payload test performed.",
+      "next_step": "Use exclusive private temporary storage, track/clean lifecycle and make unmasked browser export explicit. Do not treat SQLite encryption as protecting these files."
+    },
+    {
+      "id": "SEC-030",
+      "title": "Large auth input enters unbounded text shaping",
+      "severity": "Medium availability candidate",
+      "status": "Bounded/masked guard compiled and regression suite passed; native visual/timing check OPEN",
+      "source": "src/ui/request/auth.rs::input",
+      "evidence": "All auth values entered text_input directly even when large/multiline. Input now uses existing INLINE_LIMIT policy; large secure values render only mask plus clear action; original state preserved. No real OOM or GUI stress test run.",
+      "next_step": "Native visual check and small-limit model verification; confirm no secret hover/preview path."
+    },
+    {
+      "id": "SEC-031",
+      "title": "History URL and hover tooltip expose query/userinfo secrets",
+      "severity": "Medium confidentiality",
+      "status": "Fix verified on Windows; see case limitations and remaining gates",
+      "source": "src/ui/sidebar/history.rs; src/services/secrets.rs::display_url",
+      "evidence": "History label/tooltip formerly received raw entry.url. Synthetic regression failed. Presentation now masks userinfo, sensitive decoded query keys and fragments, bounds long URLs, and preserves stored/wire URL. Test passed including percent-encoded key and templated URL. Final checks: default suite 361 passed/3 ignored; feature-disabled suite 337 passed/3 ignored; production cargo check passed. Independent read-only review found no critical/important introduced regressions in reviewed changes.",
+      "next_step": "Full regression and native hover verification; sensitive-name heuristic is not a universal URL secret detector."
+    },
+    {
+      "id": "SEC-032",
+      "title": "Automatic snippet preview exposes password form fields",
+      "severity": "Medium confidentiality",
+      "status": "Fix verified on Windows; see case limitations and remaining gates",
+      "source": "src/app/snippet.rs::resolved_input; src/services/secrets.rs::redact_json_fields",
+      "evidence": "Preview masked auth fields but not password URLencoded/multipart fields. Synthetic regression failed. Preview now masks credential-named form fields, URL secrets, and recognized JSON fields. Explicit unmasked copy and original request remain unchanged. Form regression passed. Final checks: default suite 361 passed/3 ignored; feature-disabled suite 337 passed/3 ignored; production cargo check passed. Independent read-only review found no critical/important introduced regressions in reviewed changes.",
+      "next_step": "Expand JSON/GraphQL/opaque-body tests. Unknown or encoded secrets cannot be universally inferred."
+    },
+    {
+      "id": "SEC-033",
+      "title": "Environment editor displays unmasked variable values",
+      "severity": "Privacy/editing boundary",
+      "status": "Source observed; policy decision remains",
+      "source": "src/ui/environment_workspace.rs; src/ui/components/atoms/table_input.rs",
+      "evidence": "Dedicated environment editing table accepts/shows original values, unlike sensitive-name URL popup preview. User clarified initial concern was storage, not blanket UI masking. Do not label intended direct editing as an exploit without a secret/reveal policy.",
+      "next_step": "Consider explicit secret metadata/reveal mode; do not erase values or replace stored originals with masks."
+    },
+    {
+      "id": "SEC-034",
+      "title": "Snippet display cap applies after full generation",
+      "severity": "Medium availability candidate",
+      "status": "Source-confirmed processing path; OPEN",
+      "source": "src/app/snippet.rs::refresh/curl_input; src/app/update/mod.rs",
+      "evidence": "Preview copies/normalizes full editor body and generates snippet synchronously before clipping display to 64 KiB. Rendering cap alone does not bound CPU/temporary allocations for large imported inputs. No destructive stress test run.",
+      "next_step": "Bound preview construction before parsing/generation or add cancellable single-flight background work with revision checks; test small thresholds."
+    },
+    {
+      "id": "SEC-035",
+      "title": "WebSocket UI history and event buffers retain excessive data",
+      "severity": "Medium availability",
+      "status": "Fix verified on Windows; see case limitations and remaining gates",
+      "source": "src/state/tabs.rs::WsState; src/services/websocket.rs; src/app/subscription.rs",
+      "evidence": "1100 small synthetic messages exceeded intended retention; baseline had no history cap. Now latest 500 messages/1 MiB retained, per-message preview64 KiB with explicit truncation, service/subscription event channels4. Wire message cap remains8 MiB. No OOM workload run. Final checks: default suite 361 passed/3 ignored; feature-disabled suite 337 passed/3 ignored; production cargo check passed. Independent read-only review found no critical/important introduced regressions in reviewed changes.",
+      "next_step": "Retention and source-tab tests passed. Per-frame/per-connection preview bounds do not certify global runtime queue/process memory. Same-tab connection epochs remain separate."
+    },
+    {
+      "id": "SEC-036",
+      "title": "Script console renders unbounded accumulated output",
+      "severity": "Medium availability",
+      "status": "Fix verified on Windows; see case limitations and remaining gates",
+      "source": "src/state/tabs.rs::set_script_logs/extend_script_logs; src/ui/layout/console.rs",
+      "evidence": "A 200 KB synthetic log entered editor without bound; regression failed. Visible console now retains64 KiB/max500 records with line cap and truncation marker, after secret redaction. No GUI freeze/OOM triggered. Final checks: default suite 361 passed/3 ignored; feature-disabled suite 337 passed/3 ignored; production cargo check passed. Independent read-only review found no critical/important introduced regressions in reviewed changes.",
+      "next_step": "Console retention tests passed. This caps retained/rendered output, not allocations inside script engine or complete process memory. Native visual/CPU benchmarking remains separate."
+    },
+    {
+      "id": "SEC-037",
+      "title": "WebSocket events update active tab instead of source tab",
+      "severity": "Medium state isolation",
+      "status": "Fix verified on Windows; see case limitations and remaining gates",
+      "source": "src/message.rs::WsMsg; src/app/subscription.rs; src/app/update/ws.rs",
+      "evidence": "Handshake carried tab ID, but text/disconnect/error messages lost identity and mutated active_tab_mut. Events now carry source tab ID and ignore closed tabs. New regression checks inactive source routing and closed source. Final checks: default suite 361 passed/3 ignored; feature-disabled suite 337 passed/3 ignored; production cargo check passed. Independent read-only review found no critical/important introduced regressions in reviewed changes.",
+      "next_step": "Tab routing/closed-tab tests passed. Same-tab reconnect generation race remains OPEN: tab ID alone cannot distinguish old/new connections."
+    }
+  ]
+}

@@ -1,0 +1,11 @@
+{
+  "date": "2026-11-05",
+  "engine": "rustsec 0.33.0 default-features=false",
+  "network": "none during scan; previously fetched local RustSec advisory DB",
+  "target_filters": "none: all lockfile platforms",
+  "vulnerabilities": 2,
+  "unmaintained_warning_entries": 13,
+  "unsound_warning_entries": 1,
+  "cargo_lock_sha256": "e5d1d0c4e9a47f6683a71583bdcd78dd1dac694b9f1bb753f740a5bc83a14704",
+  "reproduce": "cargo run --manifest-path scripts/security/rustsec-offline/Cargo.toml -- <advisory-db-path> Cargo.lock <output.json>"
+}
