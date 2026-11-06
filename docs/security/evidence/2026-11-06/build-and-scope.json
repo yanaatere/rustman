@@ -1,0 +1,23 @@
+{
+  "captured_at_utc": "2026-11-06T00:44:47.856833+00:00",
+  "base_commit": "a766acee1e315d9700d209abfccba8a9c81c649a",
+  "uncommitted_changes": true,
+  "native_binary": "rustman-security-smoke.exe",
+  "native_binary_sha256": "c9e61bdac5f04aa4145453b9e4efa841ea60f62645aea3a04f01a060be15ba03",
+  "native_manifest": "target/security-runtime-harness/Cargo.toml (renamed package/bin; production src/main.rs unchanged)",
+  "scope": "Synthetic fixture; local HTTP only; no remote Git, push or RCE test",
+  "screenshot_exports": "Original JPEG bytes returned by vision tool; no conversion, reconstruction or post-processing",
+  "tls_mitm_runtime_test": "NOT PERFORMED",
+  "example_qa": "E09 failure, E10 masking fix, E11-E16 eye controls; see test-cases.md",
+  "screenshot_ids": [
+    "E01",
+    "E02",
+    "E03",
+    "E04",
+    "E05",
+    "E06",
+    "E07",
+    "E08",
+    "E09"
+  ]
+}

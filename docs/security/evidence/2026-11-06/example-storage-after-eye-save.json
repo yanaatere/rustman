@@ -1,0 +1,7 @@
+{
+  "captured_at_utc": "2026-11-06T01:00:54.230001+00:00",
+  "example_rows": 1,
+  "all_payloads_aes256gcm": true,
+  "synthetic_credential_markers_in_raw_db_files": false,
+  "reveal_is_presentation_only": true
+}

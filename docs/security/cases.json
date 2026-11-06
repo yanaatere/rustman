@@ -1,5 +1,5 @@
 {
-  "updated": "2026-11-05",
+  "updated": "2026-11-06",
   "scope": "Rustman local authorized audit. RCE testing excluded. No real secrets.",
   "cases": [
     {
@@ -8,7 +8,7 @@
       "severity": "High",
       "status": "Fix verified on Windows; see case limitations and remaining gates",
       "source": "src/services/storage.rs; src/services/storage/vault.rs; src/services/keychain.rs",
-      "evidence": "Pre-fix test exposed environment plaintext. Post-fix env/history/raw disk/reopen and migration/tamper tests passed. AES-GCM payload encryption is implemented, not full-database encryption. Final checks: default suite 361 passed/3 ignored; feature-disabled suite 337 passed/3 ignored; production cargo check passed. Independent read-only review found no critical/important introduced regressions in reviewed changes. Native production keychain-module smoke check also PASSED on Windows: create/read 256-bit synthetic key, trusted migration-state roundtrip, and deletion verified. No real credential values or user DB accessed.",
+      "evidence": "Pre-fix test exposed environment plaintext. Post-fix env/history/raw disk/reopen and migration/tamper tests passed. AES-GCM payload encryption is implemented, not full-database encryption. Final checks: default suite 361 passed/3 ignored; feature-disabled suite 337 passed/3 ignored; production cargo check passed. Independent read-only review found no critical/important introduced regressions in reviewed changes. Native production keychain-module smoke check also PASSED on Windows: create/read 256-bit synthetic key, trusted migration-state roundtrip, and deletion verified. No real credential values or user DB accessed. Native GUI QA 2026-11-06: actual Windows build sent synthetic POSTs, saved, closed normally and restored session/history. Requests/environment/session/history URL and request JSON all remained AES256GCM payloads; synthetic credential markers absent from SQLite/WAL/SHM. No real DB accessed.",
       "next_step": "Native full-app isolated UI smoke, recovery/backup UX, cross-platform keystores/permissions, whole-file replacement/rollback limits, plaintext Git/export/temp artifacts remain outside this verified payload-encryption boundary."
     },
     {
@@ -114,9 +114,9 @@
       "id": "SEC-013",
       "title": "Inline request credentials serialized to Git/export",
       "severity": "High",
-      "status": "Source-confirmed; OPEN",
+      "status": "Known credential Git guard implemented; native rejection verified; final full suite pending",
       "source": "src/services/vcs.rs; src/services/import/mod.rs::native_export",
-      "evidence": "SavedRequest includes bearer/basic/API-key/cookie/JWT values; full clones are serialized without redaction. AES protection of SQLite does not protect these files.",
+      "evidence": "SavedRequest includes bearer/basic/API-key/cookie/JWT values; full clones are serialized without redaction. AES protection of SQLite does not protect these files. Continuation: synthetic inline bearer snapshot-write test and manually inserted cookie snapshot commit test both FAILED before fix. Local values must remain unchanged; known inline shared credentials will be rejected before write/index/commit. Explicit user exports remain separate unmasked actions. Synthetic red writer/commit/history tests proved inline credential publication and clean-HEAD historical leakage. Writer/commit now reject known inline credential fields, including inactive fields and nested protected JSON; bounded push preflight checks reachable managed snapshots before network. Native Git Refresh rejected dummy password body; no JSON snapshots created, no remote configured or push executed. Explicit user exports remain lossless/unmasked and labelled. Unknown/encoded/script literals are not universally detected.",
       "next_step": "Separate explicit export semantics from shared Git publication; guard/redact with local data preservation and tests."
     },
     {
@@ -267,9 +267,9 @@
       "id": "SEC-029",
       "title": "Browser preview leaves plaintext response in temporary HTML",
       "severity": "Medium confidentiality",
-      "status": "Source-confirmed; OPEN",
+      "status": "Native normal-close preview cleanup verified; crash/lock limits remain",
       "source": "src/app/update/response.rs::OpenBodyInBrowser",
-      "evidence": "Explicit browser preview writes full response to predictable PID/time-named temp HTML with no lifecycle cleanup. It can retain response secrets outside encrypted SQLite. No browser execution or execution payload test performed.",
+      "evidence": "Explicit browser preview writes full response to predictable PID/time-named temp HTML with no lifecycle cleanup. It can retain response secrets outside encrypted SQLite. No browser execution or execution payload test performed. Extracted existing preview writer without changing its behavior. Test proved plaintext file remains after final owner drops. No browser was opened. Planned fix uses exclusive random private files, bounded ownership retention and cleanup on normal lifecycle; crashes/OS file locks remain limitations. Native GUI 2026-11-06 opened 121-byte static HTML without scripts/resources via response menu. Owned private UUID preview file existed while app ran and was absent after normal close. Restart registry coordinates writes and explicit pre-exit cleanup; updater process restart not executed in GUI. Crash/power loss/browser caches and Windows locked-file cases remain outside normal-close proof.",
       "next_step": "Use exclusive private temporary storage, track/clean lifecycle and make unmasked browser export explicit. Do not treat SQLite encryption as protecting these files."
     },
     {
@@ -343,6 +343,51 @@
       "source": "src/message.rs::WsMsg; src/app/subscription.rs; src/app/update/ws.rs",
       "evidence": "Handshake carried tab ID, but text/disconnect/error messages lost identity and mutated active_tab_mut. Events now carry source tab ID and ignore closed tabs. New regression checks inactive source routing and closed source. Final checks: default suite 361 passed/3 ignored; feature-disabled suite 337 passed/3 ignored; production cargo check passed. Independent read-only review found no critical/important introduced regressions in reviewed changes.",
       "next_step": "Tab routing/closed-tab tests passed. Same-tab reconnect generation race remains OPEN: tab ID alone cannot distinguish old/new connections."
+    },
+    {
+      "id": "SEC-038",
+      "title": "Typed auth references are not substituted at actual send",
+      "severity": "Medium auth correctness / safe-sharing boundary",
+      "status": "Native bearer-reference send verified; remaining typed-auth fixture investigation OPEN",
+      "source": "src/services/http.rs::do_send",
+      "evidence": "Bearer, Basic, API-key and cookie auth fields are used literally, unlike ordinary request headers. This can force users back to inline credentials when trying to share variable-backed requests. New loopback regression checks resolved wire values and unchanged template state; no real credentials. Deterministic HeaderMap red proved literal placeholder then passed after substitution fix. Native GUI sent literal token and {{TOKEN}} reference to owned loopback server; both received exact dummy bearer, JSON password, and Unicode text. Production Send/state/history flow worked. Latest combined fixture run remains 12 passed/1 loopback failed even with no_proxy; do not report all automated wire cases passed.",
+      "next_step": "Resolve all typed auth/query values with the active environment at send only; verify safe references work without mutating stored templates."
+    },
+    {
+      "id": "SEC-039",
+      "title": "Git publication rejection lacks visible notification",
+      "severity": "Medium security feedback / UX",
+      "status": "Regression and native visual QA passed; local uncommitted fix",
+      "source": "src/app/update/git.rs; src/app/notifications.rs; src/ui/notification.rs",
+      "evidence": "Native QA showed only tiny bottom status text for blocked credential publication; user could not see a notification. Regression failed with missing notification. Added persistent dismissible error toast with static credential-free guidance and existing semantic error palette; focused regression passed 1/1. Also uses error presentation for existing storage-failure toast. Native rebuilt app visibly showed red error icon, wrapped static guidance, persisted beyond eight seconds, dismissed correctly and reappeared on refresh. Screenshot E01/E02 and SHA manifest archived under docs/security/evidence/2026-11-06. Related Git tests 4 passed, 0 failed.",
+      "next_step": "Keep broader final audit checks separate; do not claim production-ready. Native build includes fix; no push."
+    },
+    {
+      "id": "QA-001",
+      "title": "History entry selection can reuse an already open request",
+      "severity": "Functional correctness candidate",
+      "status": "Observed during native QA; dedicated reproduction pending",
+      "source": "src/state/tabs.rs::TabManager::open_request; src/app/update/sidebar.rs",
+      "evidence": "After reopening a seeded request whose tab ID matched the saved request ID, clicking older /echo history left current /html request active. open_request deduplicates using request ID. Synthetic seed may make collision more likely; not labelled a proven general security exploit.",
+      "next_step": "Reproduce with ordinary newly created tabs and independent snapshot IDs before deciding whether history must always open an isolated tab."
+    },
+    {
+      "id": "SEC-040",
+      "title": "Saved example header editor exposes decrypted credentials",
+      "severity": "Medium confidentiality / UI",
+      "status": "Native masking/reopen and temporary reveal verified; focused tests passed",
+      "source": "src/ui/examples.rs::table",
+      "evidence": "Real native Save response -> example -> response Headers displayed full synthetic Set-Cookie and X-API-Key, unlike masked normal response viewer. Screenshot E09 records failing behavior with fake values only. Request/response/param value inputs now use sensitive-key secure presentation; original values remain in model and encrypted example payload. Raw body editor policy is unchanged. E10/E11 show masked saved-example credentials after reopen. E12/E14 reveal only selected field; E13 Save hides; E15 second click hides; E16 panel change hides. Example group16 passed: no outgoing task/client initialization, identical ciphertext during visibility changes, unchanged parent/templates, invalid indices, row-index reuse/reset. See evidence/2026-11-06/test-cases.md.",
+      "next_step": "Full audit gates remain open. Eye is presentation only; full payload already decrypted at load. No universal body masking/decrypt-on-click claim."
+    },
+    {
+      "id": "SEC-041",
+      "title": "Temporary secret reveal isolation and lifecycle",
+      "severity": "Security control verification area, not a new proven vulnerability",
+      "status": "Focused unit and native visual checks passed",
+      "source": "src/message/example.rs; src/state/examples.rs; src/app/update/examples.rs; src/ui/examples.rs",
+      "evidence": "User-requested per-field eye. EYE-001 through EYE-012 map real screenshots E11-E16 to executed tests. Transient visibility resets on Save/panel/key/row/open. Selected side/index only; no task or HTTP client; exact ciphertext/parent unchanged. Group16 passed, not16 proven vulnerabilities.",
+      "next_step": "Keyboard QA and wider surfaces remain separate. True lazy per-field decryption is not implemented."
     }
   ]
 }

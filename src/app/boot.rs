@@ -181,9 +181,11 @@ pub(crate) fn init_at(data_dir: PathBuf) -> (AppState, Task<Message>) {
     let git_identity = crate::services::vcs::resolve_identity(&data_dir.join("collections"));
 
     let state = AppState {
+        browser_previews: Vec::new(),
         environment_cell: None,
         console_open: false,
         notification: storage_error.map(|error| crate::state::notifications::Toast {
+            kind: crate::state::notifications::ToastKind::Error,
             placement: crate::state::notifications::ToastPlacement::BottomRight,
             id: uuid::Uuid::new_v4().to_string(),
             title: "Local storage unavailable".into(),

@@ -378,6 +378,7 @@ pub fn restart() -> Result<std::convert::Infallible, String> {
             .output();
     }
 
+    let _preview_shutdown = crate::services::preview_file::prepare_shutdown()?;
     match std::process::Command::new(&exe).spawn() {
         Ok(_) => std::process::exit(0),
         Err(e) => {

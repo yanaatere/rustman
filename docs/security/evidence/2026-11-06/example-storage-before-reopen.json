@@ -1,0 +1,6 @@
+{
+  "rows": 1,
+  "all_example_payloads_encrypted": true,
+  "dummy_cookie_or_api_key_visible_in_raw_payload": false,
+  "raw_database_markers_present": false
+}

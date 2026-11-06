@@ -1,0 +1,4 @@
+{"method": "POST", "path": "/echo", "auth_matches_dummy": true, "password_matches_dummy": true, "unicode_matches": true}
+{"method": "POST", "path": "/echo", "auth_matches_dummy": true, "password_matches_dummy": true, "unicode_matches": true}
+{"method": "POST", "path": "/html", "auth_matches_dummy": true, "password_matches_dummy": true, "unicode_matches": true}
+{"method": "POST", "path": "/echo", "auth_matches_dummy": true, "password_matches_dummy": true, "unicode_matches": true}

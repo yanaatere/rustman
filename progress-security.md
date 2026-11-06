@@ -1,3 +1,169 @@
+# Latest verified eye-control checkpoint — 2026-11-06
+
+- Security rerun completed:16 example tests passed/0 failed, covering no outgoing
+  Task/client, byte-identical ciphertext, unchanged parent/template/dirty state,
+  close/open reset, invalid index, row deletion/add/rename and reveal isolation.
+- Native eye checks: default hidden, selected cookie/API only, second click hide,
+  Save hide, Body/Headers switch hide. Actual evidence E11-E16.
+- Full pack docs/security/evidence/2026-11-06/README.md:16 original JPEGs, SHA256,
+  build mapping, red/green logs,12-case security matrix. Tool returned JPEG bytes;
+  initial .png filenames were corrected to .jpg without changing image bytes.
+- SEC-039/040/041 updated; E09 retained as pre-fix failure. Example is AES256GCM;
+  after reveal/Save raw DB/WAL have no known dummy credential markers.
+- Production eye build succeeded; git diff --check passed. No production source
+  changed during final security rerun (only additional tests).
+- Eye is UI visibility, not lazy DB decryption. No arbitrary-body masking,
+  TLS/MITM/whole-process or keyboard navigation pass claimed.
+- All continuation changes remain local/uncommitted in security worktree.
+  No push/remote Git action. Main checkout still a766ace. Wider full audit OPEN,
+  including previous combined loopback failure and QA-001 history observation.
+
+---
+
+# Saved-example follow-up and archived evidence — 2026-11-06
+
+- Nine actual PNG screenshots exported (E01-E09), not mockups, with SHA256 and
+  native window metadata in docs/security/evidence/2026-11-06/screenshots.json.
+  Timestamp identifies export time, not signed capture time. No real secrets.
+- E01 persistent Git rejection notification, E02 dismissal, E03 cookie masking,
+  E04 actual 200/owned-server assertions, E05 header masking, E06 Save,
+  E07 before restart history, E08 new-window restored session,
+  E09 pre-fix FAILURE: saved example exposes dummy cookie/API key plaintext.
+- SEC-039 native toast passed visible/error/persistent/dismiss/retrigger; related
+  Git tests 4 passed. No push, no remote or successful Git commit in QA fixture.
+- User added saved-example QA. Real UI Save response created one example;
+  SQLite request_examples.data has AES256GCM prefix and DB/WAL contain no known
+  dummy credential markers. Display alone exposed decrypted headers in editor.
+- SEC-040: example header/parameter value inputs now secure for sensitive keys.
+  Native E09 is the failing behavior. Native rebuild/reopen still pending in
+  functions cell 111; do not claim masked example GUI passed yet.
+- Example suite 13 passed/0 failed, including new save-response/save/reopen
+  assertions: original bearer/cookie/API key survive encryption, parent unchanged.
+- User asked whether resolved data can be viewed for debug. Recommended explicit
+  per-field temporary Show/Hide, default hidden, reset on save/panel/reopen; never
+  replace stored {{TOKEN}} template with resolved value. That reveal control is
+  a design recommendation, NOT implemented/tested by the current one-line fix.
+- Broader final full-suite and prior failed auth loopback fixture remain OPEN.
+  History replay candidate QA-001 remains separate. Latest source is uncommitted
+  in security worktree; main checkout still lacks these uncommitted changes.
+
+---
+
+# Native vision QA and Git notification fix — 2026-11-06
+
+Vision now works. Native GUI checks were performed, not only source edits.
+See docs/security/native-qa-2026-11-06.md for exact pass boundaries and open items.
+
+- Actual Send to host loopback: literal bearer and {{TOKEN}} both correct; dummy
+  JSON password/Unicode correct; response headers/cookies and snippet masked.
+- Save + normal close + real reopen restored encrypted session/history/request.
+  Raw DB/WAL/SHM contained no known synthetic credential markers. All protected
+  columns encrypted, including nine history rows. Native keychain used.
+- Git refresh guard denied dummy password body before snapshot; no JSON files or
+  commits created, repo has no remote. No push; user reiterated local examples only.
+- Preview static HTML opened; 121-byte owned file removed after normal close.
+- User noticed invisible rejection feedback. Root cause status-bar-only update.
+  SEC-039 regression RED (missing notification), then GREEN 1 passed. Error toast
+  is persistent/dismissible and uses static guidance, never raw credentials.
+  Native rebuild/retest is in progress: target/security-runtime-build.log.
+- QA-001 seeded history dedup observation recorded separately, investigation OPEN.
+- User asked about sniffing: explained HTTP plaintext versus validated HTTPS/TLS,
+  and at-rest AES boundary. No TLS interception test was claimed or run.
+- All current continuation edits remain in security worktree, uncommitted. Main
+  checkout shares branch but does not contain these uncommitted changes.
+- Full final suite still pending; prior combined fixture result 12 pass/1 failure
+  remains unresolved. Never certify production readiness from these focused checks.
+
+---
+
+# Vision QA retry — 2026-11-06
+
+User explicitly authorized vision QA. Read Windows Computer Use guidance and
+confirmation policy, attempted node_repl initialization, reset kernel and retried;
+both failed before sky could initialize. Reset CUA fallback and attempted inventory;
+same failure: "failed to write kernel assets: The system cannot find the path
+specified. (os error 3)". No screenshot acquired, no window input sent, no visual
+PASS claimed. Previous synthetic smoke process was not found in current inventory
+query; no app was launched without an available observation channel. Real database
+and credentials untouched. Visual QA remains blocked on desktop tool initialization;
+retry after desktop app/tool session recovery. Prior native startup/AES results
+remain historical and do not substitute for visual QA.
+
+---
+
+# Checkout/manual handoff — 2026-11-05
+
+- Main checkout D:/Dev/Rust/postman-clone/rustman switched as requested to
+  codex/security-production-hardening, a766ace; used --ignore-other-worktrees
+  because security worktree also owns this branch. No reset/clean/push.
+- Main checkout pre-existing .gitignore edit and untracked .claude-flow directories
+  and transport-audit-http.rs preserved. Latest continuation edits remain ONLY
+  in security worktree and are not yet in main checkout.
+- Both checkouts now reference the same branch: avoid concurrent branch/commit
+  mutations until coordinating worktrees again.
+- Latest native renamed build succeeded (38.35s); previously launched process
+  34652 is the older runtime build and must close before manually reopening latest.
+- Focused rerun: 12 passed / 1 failed (auth loopback transport), even with no_proxy.
+  Do not claim all tests passed; full final suite and transport investigation pending.
+- Manual instructions: docs/security/manual-validation.md. Generated workflow
+  driver was not executed; native startup/migration only are runtime-verified.
+
+---
+
+# Runtime checkpoint — 2026-11-05, manual validation requested
+
+Current continuation is uncommitted; latest committed baseline a766ace. No push.
+
+- Actual native non-test build succeeded using an isolated renamed manifest and
+  shared cache; original rustman.exe was not overwritten. Test process 34652
+  launched with child-only RUSTMAN_DATA_DIR/TEMP/TMP under target/security-runtime-data-UUID.
+- Windows reported Responding=True, a real Rustman window and ~188 MiB working set.
+  This establishes startup, not visual correctness or absence of memory defects.
+- Seeded synthetic legacy SQLite migrated using actual Windows native keychain:
+  requests/data, environments/variables and session/data all have AES256GCM prefix.
+  Synthetic token/password markers absent from DB, WAL and SHM after startup.
+  No original user DB or credential values accessed.
+- Native visual automation blocked: node_repl initialization failed, reset/retry
+  failed, and CUA fallback failed, all with "failed to write kernel assets ...
+  system cannot find the path specified (os error 3)". No visual pass claimed.
+- User requested manual validation steps. End-to-end clicking Send/save/reopen,
+  response masking and browser preview remains MANUAL/OPEN. Generated runtime
+  workflow driver was not completed or executed; no Send runtime pass claimed.
+- Three new red regressions confirmed (nested protected JSON, historical secret
+  ancestor with clean HEAD, restart skipping preview destructors). Fixes implemented.
+  Review identified schema/OID dedup bypass; scan now independently checks each
+  recognized schema. Full final verification of this continuation still required.
+- Focused suite initially 12 passed/1 failed due loopback fixture/network behavior.
+  Deterministic auth HeaderMap passed; wire fixture now explicitly disables proxy
+  to isolate local transport. Next result is target/security-publication-review-green.log.
+- Runtime test DB owns two native credential entries. Retain while manual testing;
+  cleanup of those exact UUID entries is pending after app closure. Do not sweep
+  unrelated temp files or credential entries. No real data cleanup performed.
+
+---
+
+# Active continuation — publication and browser preview
+
+Base checkpoint: a766ace. No push. New work is currently uncommitted.
+
+- SEC-013: two synthetic red regressions FAILED as expected: writer leaks inline
+  bearer into snapshot; commit accepts manually inserted inline cookie snapshot.
+- SEC-029: extracted existing temp writer for an observable lifecycle seam;
+  regression FAILED because plaintext file survives final owner drop. No browser
+  opened or execution payload used.
+- SEC-038 added: typed auth references do not expand at real send. Regression is
+  queued/running in functions cell g6:297, log target/security-auth-reference-red.log.
+- Plan: reject known inline credentials before shared Git writes/commit while
+  preserving encrypted local values; allow variable references and resolve typed
+  auth only at send. Label explicit user exports unmasked. Preview becomes a
+  random/exclusive private file with shared RAII ownership, bounded retention and
+  normal-lifecycle cleanup; crashes/browser-held locks cannot be guaranteed away.
+
+Collect pending auth red result before modifying HTTP auth implementation. Prior
+full-suite results below belong to a766ace, not these uncommitted changes.
+
+---
+
 # Latest verified checkpoint — 2026-11-05, UI/security continuation
 
 Branch: `codex/security-production-hardening`; base development

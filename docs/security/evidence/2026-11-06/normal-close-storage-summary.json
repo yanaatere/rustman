@@ -1,0 +1,48 @@
+{
+  "requests.data": {
+    "rows": 1,
+    "encrypted": true
+  },
+  "environments.variables": {
+    "rows": 1,
+    "encrypted": true
+  },
+  "session.data": {
+    "rows": 1,
+    "encrypted": true
+  },
+  "history.url": {
+    "rows": 9,
+    "encrypted": true
+  },
+  "history.request_json": {
+    "rows": 9,
+    "encrypted": true
+  },
+  "plaintext_markers_in_db_files": false,
+  "remaining_owned_preview_files": 0,
+  "git_snapshots": 0,
+  "wire_results": [
+    {
+      "method": "POST",
+      "path": "/echo",
+      "auth_matches_dummy": true,
+      "password_matches_dummy": true,
+      "unicode_matches": true
+    },
+    {
+      "method": "POST",
+      "path": "/echo",
+      "auth_matches_dummy": true,
+      "password_matches_dummy": true,
+      "unicode_matches": true
+    },
+    {
+      "method": "POST",
+      "path": "/html",
+      "auth_matches_dummy": true,
+      "password_matches_dummy": true,
+      "unicode_matches": true
+    }
+  ]
+}

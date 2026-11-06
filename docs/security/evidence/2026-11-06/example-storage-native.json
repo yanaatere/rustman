@@ -1,0 +1,5 @@
+{
+  "example_rows": 1,
+  "all_examples_have_aes256gcm_payload": true,
+  "synthetic_secret_in_raw_database_files": false
+}

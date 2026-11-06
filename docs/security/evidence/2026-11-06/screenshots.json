@@ -1,0 +1,274 @@
+[
+  {
+    "id": "E01",
+    "file": "screenshots/E01-git-rejection-toast.jpg",
+    "timezone": "Asia/Jakarta",
+    "window": {
+      "app": "process:D:\\Dev\\Rust\\postman-clone\\rustman\\target\\debug\\rustman-security-smoke.exe",
+      "id": 1247318,
+      "title": "Rustman"
+    },
+    "screenshot_id": "screenshot-0",
+    "sha256": "3491ec7c8476adc62179d572853745c0456c634a017e3c63b67fbcd95fbed428",
+    "claim": "Git publication blocked toast visible with error icon and credential-free guidance; no commit or push attempted.",
+    "scope": "Native isolated synthetic Rustman QA only",
+    "exported_at_utc": "2026-11-06T00:41:27.322Z",
+    "mime_type": "image/jpeg",
+    "build_metadata": "build-and-scope.json"
+  },
+  {
+    "id": "E02",
+    "file": "screenshots/E02-notification-dismissed.jpg",
+    "timezone": "Asia/Jakarta",
+    "window": {
+      "app": "process:D:\\Dev\\Rust\\postman-clone\\rustman\\target\\debug\\rustman-security-smoke.exe",
+      "id": 1247318,
+      "title": "Rustman"
+    },
+    "screenshot_id": "screenshot-0",
+    "sha256": "53bd59c3169ec9f8b3b3194e4c6cf8fb4d0471e51536824ad2c4600fda2e1403",
+    "claim": "Dismiss removes persistent Git rejection toast while status-bar rejection remains.",
+    "scope": "Native isolated synthetic Rustman QA only",
+    "exported_at_utc": "2026-11-06T00:41:49.533Z",
+    "mime_type": "image/jpeg",
+    "build_metadata": "build-and-scope.json"
+  },
+  {
+    "id": "E03",
+    "file": "screenshots/E03-response-cookie-masked.jpg",
+    "timezone": "Asia/Jakarta",
+    "window": {
+      "app": "process:D:\\Dev\\Rust\\postman-clone\\rustman\\target\\debug\\rustman-security-smoke.exe",
+      "id": 1247318,
+      "title": "Rustman"
+    },
+    "screenshot_id": "screenshot-0",
+    "sha256": "52068c31bf65f17ed14d0fd5f6f94f4dc582d403ff6d3b6717c2a884747523f5",
+    "claim": "Successful response shows sid cookie masked; Authorization field and generated snippet are also masked.",
+    "scope": "Native isolated synthetic Rustman QA only",
+    "exported_at_utc": "2026-11-06T00:42:13.175Z",
+    "mime_type": "image/jpeg",
+    "build_metadata": "build-and-scope.json"
+  },
+  {
+    "id": "E04",
+    "file": "screenshots/E04-send-wire-assertions.jpg",
+    "timezone": "Asia/Jakarta",
+    "window": {
+      "app": "process:D:\\Dev\\Rust\\postman-clone\\rustman\\target\\debug\\rustman-security-smoke.exe",
+      "id": 1247318,
+      "title": "Rustman"
+    },
+    "screenshot_id": "screenshot-0",
+    "sha256": "8f9427ebcf3c0810eea6ca57defa9eddd900349b5068cadac8d3977302fcf60f",
+    "claim": "Actual POST completed 200 OK; owned loopback server reports exact dummy bearer, JSON password and Unicode; masking did not replace wire payload.",
+    "scope": "Native isolated synthetic Rustman QA only",
+    "exported_at_utc": "2026-11-06T00:42:22.554Z",
+    "mime_type": "image/jpeg",
+    "build_metadata": "build-and-scope.json"
+  },
+  {
+    "id": "E05",
+    "file": "screenshots/E05-response-headers-masked.jpg",
+    "timezone": "Asia/Jakarta",
+    "window": {
+      "app": "process:D:\\Dev\\Rust\\postman-clone\\rustman\\target\\debug\\rustman-security-smoke.exe",
+      "id": 1247318,
+      "title": "Rustman"
+    },
+    "screenshot_id": "screenshot-0",
+    "sha256": "db295b0c58a6cf1223b7ce3c8361fd71223da105899bd5c95e453119d8f7b1f7",
+    "claim": "Set-Cookie and X-API-Key response values are masked in the real native response header table.",
+    "scope": "Native isolated synthetic Rustman QA only",
+    "exported_at_utc": "2026-11-06T00:42:49.159Z",
+    "mime_type": "image/jpeg",
+    "build_metadata": "build-and-scope.json"
+  },
+  {
+    "id": "E06",
+    "file": "screenshots/E06-request-saved.jpg",
+    "timezone": "Asia/Jakarta",
+    "window": {
+      "app": "process:D:\\Dev\\Rust\\postman-clone\\rustman\\target\\debug\\rustman-security-smoke.exe",
+      "id": 1247318,
+      "title": "Rustman"
+    },
+    "screenshot_id": "screenshot-0",
+    "sha256": "0cac5097db71f64f6ef8c1773c8212f975bf4b322d1cd2b5e2a92d440c2f2e72",
+    "claim": "Native Save reports Saved and clears the modified marker before close/reopen.",
+    "scope": "Native isolated synthetic Rustman QA only",
+    "exported_at_utc": "2026-11-06T00:42:59.543Z",
+    "mime_type": "image/jpeg",
+    "build_metadata": "build-and-scope.json"
+  },
+  {
+    "id": "E07",
+    "file": "screenshots/E07-history-before-restart.jpg",
+    "timezone": "Asia/Jakarta",
+    "window": {
+      "app": "process:D:\\Dev\\Rust\\postman-clone\\rustman\\target\\debug\\rustman-security-smoke.exe",
+      "id": 1247318,
+      "title": "Rustman"
+    },
+    "screenshot_id": "screenshot-0",
+    "sha256": "9d495b86b78de12129884f57884f1840d9ea987aa66efe1983425fc504254c85",
+    "claim": "Synthetic history list and saved echo request visible before normal close; this does not certify replaying every historical snapshot.",
+    "scope": "Native isolated synthetic Rustman QA only",
+    "exported_at_utc": "2026-11-06T00:43:16.040Z",
+    "mime_type": "image/jpeg",
+    "build_metadata": "build-and-scope.json"
+  },
+  {
+    "id": "E08",
+    "file": "screenshots/E08-session-after-restart.jpg",
+    "timezone": "Asia/Jakarta",
+    "window": {
+      "app": "process:D:\\Dev\\Rust\\postman-clone\\rustman\\target\\debug\\rustman-security-smoke.exe",
+      "id": 14815250,
+      "title": "Rustman"
+    },
+    "screenshot_id": "screenshot-0",
+    "sha256": "298e07384d3b6d68279e1836a667f3aadcde06302e7cde1783b5d0e1d8a48ac4",
+    "claim": "A different native window restored the saved echo URL, synthetic environment, masked auth and history list after normal close/reopen. No response persistence is claimed.",
+    "scope": "Native isolated synthetic Rustman QA only",
+    "exported_at_utc": "2026-11-06T00:45:24.318Z",
+    "mime_type": "image/jpeg",
+    "build_metadata": "build-and-scope.json"
+  },
+  {
+    "id": "E09",
+    "file": "screenshots/E09-example-headers-before-fix.jpg",
+    "timezone": "Asia/Jakarta",
+    "window": {
+      "app": "process:D:\\Dev\\Rust\\postman-clone\\rustman\\target\\debug\\rustman-security-smoke.exe",
+      "id": 14815250,
+      "title": "Rustman"
+    },
+    "screenshot_id": "screenshot-0",
+    "sha256": "1e5f53707fecf298909e0dee8275d5f655dac6899fd371413fa3d1bea4354e3d",
+    "claim": "PRE-FIX FAILURE: saved example editor exposes synthetic Set-Cookie and X-API-Key values. All shown values are intentionally fake. Raw request body is the direct editing surface, not an automatic masked preview.",
+    "scope": "Native isolated synthetic Rustman QA only",
+    "exported_at_utc": "2026-11-06T00:45:58.211Z",
+    "mime_type": "image/jpeg",
+    "build_metadata": "build-and-scope.json"
+  },
+  {
+    "id": "E10",
+    "file": "screenshots/E10-example-headers-masked-after-reopen.jpg",
+    "timezone": "Asia/Jakarta",
+    "window": {
+      "app": "process:D:\\Dev\\Rust\\postman-clone\\rustman\\target\\debug\\rustman-security-smoke.exe",
+      "id": 16322578,
+      "title": "Rustman"
+    },
+    "screenshot_id": "screenshot-0",
+    "sha256": "7397aef901d8d377cb6f5ccf7e2aad6ac10251bb217dc00e9ceb6bba39190e89",
+    "claim": "POST-FIX PASS: saved example reloaded from native encrypted database; Set-Cookie and X-API-Key are masked, original response assertions and body intact. This build has not yet added per-field eye reveal.",
+    "scope": "Native isolated synthetic Rustman QA only",
+    "exported_at_utc": "2026-11-06T00:54:47.636Z",
+    "mime_type": "image/jpeg",
+    "build_metadata": "example-mask-intermediate-build.json"
+  },
+  {
+    "id": "E11",
+    "file": "screenshots/E11-example-eye-default-hidden.jpg",
+    "timezone": "Asia/Jakarta",
+    "window": {
+      "app": "process:D:\\Dev\\Rust\\postman-clone\\rustman\\target\\debug\\rustman-security-smoke.exe",
+      "id": 24512842,
+      "title": "Rustman"
+    },
+    "screenshot_id": "screenshot-0",
+    "sha256": "3d9ee5d45e217723c410fa4f2418892e4b032635d61abfc947623d382caef5de",
+    "claim": "Final eye-control build: sensitive saved-example headers start masked, with small per-field eye icons and stable value columns.",
+    "scope": "Native isolated synthetic Rustman QA only",
+    "exported_at_utc": "2026-11-06T01:00:20.777Z",
+    "mime_type": "image/jpeg",
+    "build_metadata": "eye-build.json"
+  },
+  {
+    "id": "E12",
+    "file": "screenshots/E12-example-eye-revealed.jpg",
+    "timezone": "Asia/Jakarta",
+    "window": {
+      "app": "process:D:\\Dev\\Rust\\postman-clone\\rustman\\target\\debug\\rustman-security-smoke.exe",
+      "id": 24512842,
+      "title": "Rustman"
+    },
+    "screenshot_id": "screenshot-0",
+    "sha256": "1b80613519c5282b1cb0a989e127bd2d48e86c27e95429936fd2d8b8e5ec5208",
+    "claim": "Explicit eye click reveals only synthetic Set-Cookie; X-API-Key remains hidden, Hide value hover tooltip appears, and editor is not marked dirty.",
+    "scope": "Native isolated synthetic Rustman QA only",
+    "exported_at_utc": "2026-11-06T01:00:29.845Z",
+    "mime_type": "image/jpeg",
+    "build_metadata": "eye-build.json"
+  },
+  {
+    "id": "E13",
+    "file": "screenshots/E13-example-save-hides-values.jpg",
+    "timezone": "Asia/Jakarta",
+    "window": {
+      "app": "process:D:\\Dev\\Rust\\postman-clone\\rustman\\target\\debug\\rustman-security-smoke.exe",
+      "id": 24512842,
+      "title": "Rustman"
+    },
+    "screenshot_id": "screenshot-0",
+    "sha256": "39e9de8c8e5cdcb93181ac8ef67f75b0c840ace2abf504db16a3a1afa4ab497b",
+    "claim": "Saving the example re-hides all revealed credential fields; original values remain encrypted and Example saved locally is visible.",
+    "scope": "Native isolated synthetic Rustman QA only",
+    "exported_at_utc": "2026-11-06T01:00:51.480Z",
+    "mime_type": "image/jpeg",
+    "build_metadata": "eye-build.json"
+  },
+  {
+    "id": "E14",
+    "file": "screenshots/E14-eye-api-isolation.jpg",
+    "timezone": "Asia/Jakarta",
+    "window": {
+      "app": "process:D:\\Dev\\Rust\\postman-clone\\rustman\\target\\debug\\rustman-security-smoke.exe",
+      "id": 24512842,
+      "title": "Rustman"
+    },
+    "screenshot_id": "screenshot-0",
+    "sha256": "d5d60089a8d4d43f2a7a05089c92ad14451b1c5cbd6dbb17d478f02e1f06d72a",
+    "claim": "Security rerun: only X-API-Key was explicitly revealed; Set-Cookie stayed masked. No unsaved content marker appeared.",
+    "scope": "Native isolated synthetic Rustman QA only",
+    "exported_at_utc": "2026-11-06T01:03:27.837Z",
+    "mime_type": "image/jpeg",
+    "build_metadata": "eye-build.json"
+  },
+  {
+    "id": "E15",
+    "file": "screenshots/E15-eye-second-click-hides.jpg",
+    "timezone": "Asia/Jakarta",
+    "window": {
+      "app": "process:D:\\Dev\\Rust\\postman-clone\\rustman\\target\\debug\\rustman-security-smoke.exe",
+      "id": 24512842,
+      "title": "Rustman"
+    },
+    "screenshot_id": "screenshot-0",
+    "sha256": "1ea72f61682cecaf8f41590786ad5b41060b7026eff2a1a6ac7cec8e0d7ae13a",
+    "claim": "Security rerun: a second click re-masks the API key and tooltip returns to Show value.",
+    "scope": "Native isolated synthetic Rustman QA only",
+    "exported_at_utc": "2026-11-06T01:03:35.477Z",
+    "mime_type": "image/jpeg",
+    "build_metadata": "eye-build.json"
+  },
+  {
+    "id": "E16",
+    "file": "screenshots/E16-eye-panel-change-hides.jpg",
+    "timezone": "Asia/Jakarta",
+    "window": {
+      "app": "process:D:\\Dev\\Rust\\postman-clone\\rustman\\target\\debug\\rustman-security-smoke.exe",
+      "id": 24512842,
+      "title": "Rustman"
+    },
+    "screenshot_id": "screenshot-0",
+    "sha256": "42d345bca8c760f326264dabbab865c95b226ef68d37e3b28731aa7aa3d0f642",
+    "claim": "Security rerun: leaving response Headers for Body and returning clears reveal; cookie and API key are both masked again.",
+    "scope": "Native isolated synthetic Rustman QA only",
+    "exported_at_utc": "2026-11-06T01:03:55.406Z",
+    "mime_type": "image/jpeg",
+    "build_metadata": "eye-build.json"
+  }
+]

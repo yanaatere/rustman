@@ -1,0 +1,10 @@
+{
+  "screenshot_ids": [
+    "E10"
+  ],
+  "binary_sha256": "2750026b8d4ed7a0edecb1546181b4c13d5171328f4adf616b8a002187c1e761",
+  "binary_mtime_utc": "2026-11-06T00:51:32.778234+00:00",
+  "eye_source_mtime_utc": "2026-11-06T00:56:38.571689+00:00",
+  "binary_predates_eye_source": true,
+  "description": "Native E10 was the default-masking intermediate build, before per-field eye implementation. No generated UI."
+}

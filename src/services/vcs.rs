@@ -260,9 +260,19 @@ pub fn commit(data_dir: &PathBuf, identity: &GitIdentity, message: &str) -> Resu
             continue;
         };
         let recognized = if name == GLOBAL_SCRIPT_FILE {
-            serde_json::from_str::<GlobalScriptFile>(&read_regular_json(&path)?).is_ok()
+            if let Ok(global) = serde_json::from_str::<GlobalScriptFile>(&read_regular_json(&path)?)
+            {
+                crate::services::secrets::validate_shared_script(&global.pre_request_script)?;
+                crate::services::secrets::validate_shared_script(&global.test_script)?;
+                true
+            } else {
+                false
+            }
+        } else if let Some(file) = managed_collection(&path)? {
+            crate::services::secrets::validate_shared_requests(&file.requests, &file.groups)?;
+            true
         } else {
-            managed_collection(&path)?.is_some()
+            false
         };
         if !recognized {
             continue;
@@ -488,7 +498,103 @@ pub fn fetch(data_dir: &PathBuf) -> Result<(), String> {
     run_git(data_dir, &["fetch", "--all"]).map(|_| ())
 }
 
+// Preflight seam for local-only publication-history regression coverage.
+// Validate all reachable managed snapshots, including credentials removed at HEAD.
+// Bounds are fail-closed and checked before allocating each Git object.
+fn validate_push_history(repo: &Repository) -> Result<(), String> {
+    let head = repo
+        .head()
+        .map_err(|e| e.to_string())?
+        .target()
+        .ok_or("Unresolved HEAD")?;
+    let odb = repo.odb().map_err(|e| e.to_string())?;
+    let mut pending = vec![head];
+    let mut commits = HashSet::new();
+    let mut trees = HashSet::new();
+    let mut blobs = HashSet::new();
+    let mut total = 0usize;
+    while let Some(oid) = pending.pop() {
+        if !commits.insert(oid) {
+            continue;
+        }
+        if commits.len() > 2048 {
+            return Err(
+                "Push security scan exceeds 2048 commits; review history separately".into(),
+            );
+        }
+        let (size, kind) = odb.read_header(oid).map_err(|e| e.to_string())?;
+        if size > 1024 * 1024 || kind != git2::ObjectType::Commit {
+            return Err("Invalid or oversized Git commit".into());
+        }
+        total = total.saturating_add(size);
+        let commit = repo.find_commit(oid).map_err(|e| e.to_string())?;
+        for parent in commit.parent_ids() {
+            if pending.len() >= 4096 {
+                return Err("Push security scan history queue exceeded".into());
+            }
+            pending.push(parent);
+        }
+        if !trees.insert(commit.tree_id()) {
+            continue;
+        }
+        let (size, kind) = odb
+            .read_header(commit.tree_id())
+            .map_err(|e| e.to_string())?;
+        if size > 4 * 1024 * 1024 || kind != git2::ObjectType::Tree {
+            return Err("Invalid or oversized Git tree".into());
+        }
+        total = total.saturating_add(size);
+        let tree = commit.tree().map_err(|e| e.to_string())?;
+        for entry in tree.iter() {
+            let Ok(name) = entry.name() else {
+                continue;
+            };
+            if !name.ends_with(".json")
+                || !matches!(entry.filemode(), 0o100644 | 0o100755)
+                || !blobs.insert(entry.id())
+            {
+                continue;
+            }
+            if blobs.len() > 4096 {
+                return Err("Push security scan exceeds 4096 snapshots".into());
+            }
+            let (size, kind) = odb.read_header(entry.id()).map_err(|e| e.to_string())?;
+            total = total.saturating_add(size);
+            if size as u64 > MAX_COLLECTION_FILE_BYTES
+                || total > 256 * 1024 * 1024
+                || kind != git2::ObjectType::Blob
+            {
+                return Err("Push security scan exceeds object or total byte budget".into());
+            }
+            let blob = repo.find_blob(entry.id()).map_err(|e| e.to_string())?;
+            // A blob can match multiple schemas; validate each independently so
+            // deduplication cannot hide a global script under a collection name.
+            if let Ok(file) = serde_json::from_slice::<GlobalScriptFile>(blob.content()) {
+                crate::services::secrets::validate_shared_script(&file.pre_request_script)?;
+                crate::services::secrets::validate_shared_script(&file.test_script)?;
+            }
+            if let Ok(file) = serde_json::from_slice::<CollectionFile>(blob.content()) {
+                crate::services::secrets::validate_shared_requests(&file.requests, &file.groups)?;
+            } else if let Ok(files) = serde_json::from_slice::<Vec<CollectionFile>>(blob.content())
+            {
+                for file in files {
+                    crate::services::secrets::validate_shared_requests(
+                        &file.requests,
+                        &file.groups,
+                    )?;
+                }
+            }
+        }
+        if total > 256 * 1024 * 1024 {
+            return Err("Push security scan exceeds byte budget".into());
+        }
+    }
+    Ok(())
+}
+
 pub fn push(data_dir: &PathBuf) -> Result<(), String> {
+    let repo = open_at(data_dir)?;
+    validate_push_history(&repo)?;
     run_git(data_dir, &["push", "-u", "origin", "HEAD"]).map(|_| ())
 }
 
@@ -625,6 +731,7 @@ pub fn write_working_tree(
     let mut portable_ids = HashSet::new();
     let mut snapshots = Vec::new();
     for imported in collections {
+        crate::services::secrets::validate_shared_requests(&imported.requests, &imported.groups)?;
         let id = &imported.collection.id;
         if !safe_collection_id(id) || !portable_ids.insert(id.to_ascii_lowercase()) {
             return Err("Unsafe, reserved or duplicate collection ID".into());
@@ -651,6 +758,8 @@ pub fn write_working_tree(
         serde_json::from_str::<GlobalScriptFile>(&text)
             .map_err(|_| "Refusing to overwrite unrelated global.json".to_owned())?;
     }
+    crate::services::secrets::validate_shared_script(global_pre_request_script)?;
+    crate::services::secrets::validate_shared_script(global_test_script)?;
     let global = if global_pre_request_script.is_empty() && global_test_script.is_empty() {
         None
     } else {
@@ -710,6 +819,202 @@ mod security_tests {
             groups: vec![],
         }
     }
+    fn raw_snapshot_commit(repo: &Repository, dir: &Path, file: &CollectionFile) {
+        std::fs::write(dir.join("c1.json"), serde_json::to_vec(file).unwrap()).unwrap();
+        let mut index = repo.index().unwrap();
+        index.add_path(Path::new("c1.json")).unwrap();
+        index.write().unwrap();
+        let oid = index.write_tree().unwrap();
+        let tree = repo.find_tree(oid).unwrap();
+        let signature = Signature::now("Test", "test@example.test").unwrap();
+        let parent = repo.head().ok().and_then(|h| h.peel_to_commit().ok());
+        let parents: Vec<_> = parent.iter().collect();
+        repo.commit(
+            Some("HEAD"),
+            &signature,
+            &signature,
+            "synthetic fixture",
+            &tree,
+            &parents,
+        )
+        .unwrap();
+    }
+    #[test]
+    fn security_publication_sensitive_parent_applies_to_nested_objects_and_arrays() {
+        for body in [
+            r#"{"credentials":{"value":"synthetic-nested"}}"#,
+            r#"{"password":{"value":"synthetic-nested"}}"#,
+            r#"{"credentials":[{"value":"synthetic-nested"}]}"#,
+        ] {
+            let mut req = SavedRequest::new_in("c".into(), "Synthetic".into());
+            req.body = body.into();
+            assert!(crate::services::secrets::validate_shared_requests(&[req], &[]).is_err());
+        }
+    }
+
+    #[test]
+    fn security_publication_history_checks_secret_ancestor_even_when_head_is_clean() {
+        let dir =
+            std::env::temp_dir().join(format!("rustman-history-guard-{}", uuid::Uuid::new_v4()));
+        let repo = open_at(&dir).unwrap();
+        let mut req = SavedRequest::new_in("c1".into(), "Synthetic".into());
+        req.bearer_token = "synthetic-historic-token".into();
+        let mut file = CollectionFile {
+            collection: collection("c1").collection,
+            requests: vec![req],
+            groups: vec![],
+        };
+        raw_snapshot_commit(&repo, &dir, &file);
+        file.requests.clear();
+        raw_snapshot_commit(&repo, &dir, &file);
+        let head = repo.head().unwrap().target().unwrap();
+        let result = validate_push_history(&repo);
+        assert!(
+            result.is_err(),
+            "a clean HEAD must not hide a reachable secret-bearing ancestor"
+        );
+        assert!(!result.unwrap_err().contains("synthetic-historic-token"));
+        assert_eq!(repo.head().unwrap().target().unwrap(), head);
+        assert!(
+            repo.remotes().unwrap().is_empty(),
+            "this regression must have no network target"
+        );
+        drop(repo);
+        std::fs::remove_dir_all(dir).unwrap();
+    }
+
+    #[test]
+    fn security_publication_nested_and_inactive_credentials_are_blocked() {
+        use crate::domain::request::KeyValue;
+        let dir =
+            std::env::temp_dir().join(format!("rustman-publish-nested-{}", uuid::Uuid::new_v4()));
+        let base = SavedRequest::new_in("c1".into(), "Synthetic".into());
+        let mut cases = Vec::new();
+        let mut req = base.clone();
+        req.basic_pass = "synthetic-inactive-password".into();
+        cases.push(req);
+        let mut req = base.clone();
+        let mut h = KeyValue::new_empty();
+        h.key = "Authorization".into();
+        h.value = "Bearer synthetic-header".into();
+        h.enabled = false;
+        req.headers.push(h);
+        cases.push(req);
+        let mut req = base.clone();
+        req.url = "https://example.test/?%61pi_key=synthetic-url".into();
+        cases.push(req);
+        let mut req = base.clone();
+        req.body = r#"{"credentials":{"password":"synthetic-json"}}"#.into();
+        cases.push(req);
+        let mut req = base.clone();
+        req.graphql_variables = r#"{"client_secret":"synthetic-graphql"}"#.into();
+        cases.push(req);
+        let mut req = base;
+        req.pre_request_script =
+            "-----BEGIN PRIVATE KEY-----\nsynthetic\n-----END PRIVATE KEY-----".into();
+        cases.push(req);
+        for req in cases {
+            let mut imported = collection("c1");
+            imported.groups.push(ImportedGroup {
+                id: "g".into(),
+                parent_id: "c1".into(),
+                parent_is_collection: true,
+                name: "Nested".into(),
+                sort_order: 0,
+                requests: vec![req],
+                groups: vec![],
+            });
+            assert!(write_working_tree(&dir, &[imported], "", "").is_err());
+            assert!(!dir.join("c1.json").exists());
+        }
+        std::fs::remove_dir_all(dir).unwrap();
+    }
+
+    #[test]
+    fn security_publication_templates_can_be_shared_and_explicit_export_is_lossless() {
+        use crate::domain::request::KeyValue;
+        let dir =
+            std::env::temp_dir().join(format!("rustman-publish-ref-{}", uuid::Uuid::new_v4()));
+        let mut imported = collection("c1");
+        let mut req = SavedRequest::new_in("c1".into(), "Login".into());
+        req.bearer_token = "{{TOKEN}}".into();
+        req.basic_pass = "{{PASSWORD}}".into();
+        req.api_key_value = "{{TOKEN}}".into();
+        req.cookie_string = "sid={{SESSION}}".into();
+        req.body = r#"{"password":"{{PASSWORD}}","user":"public"}"#.into();
+        let mut h = KeyValue::new_empty();
+        h.key = "Authorization".into();
+        h.value = "Bearer {{TOKEN}}".into();
+        req.headers.push(h);
+        imported.requests.push(req.clone());
+        let before = serde_json::to_string(&imported).unwrap();
+        write_working_tree(&dir, &[imported.clone()], "", "").unwrap();
+        let identity = GitIdentity {
+            name: "Test".into(),
+            email: "test@example.test".into(),
+        };
+        commit(&dir, &identity, "share references").unwrap();
+        assert_eq!(serde_json::to_string(&imported).unwrap(), before);
+        req.bearer_token = "synthetic-explicit-export".into();
+        let exported = crate::services::import::native_export(&imported.collection, &[req], &[]);
+        assert!(
+            exported.contains("synthetic-explicit-export"),
+            "explicit unmasked export must retain original values"
+        );
+        std::fs::remove_dir_all(dir).unwrap();
+    }
+
+    #[test]
+    fn security_publication_rejects_inline_credentials_before_any_snapshot_write() {
+        let dir = std::env::temp_dir().join(format!("rustman-publish-{}", uuid::Uuid::new_v4()));
+        write_working_tree(&dir, &[collection("existing")], "", "").unwrap();
+        let original = std::fs::read(dir.join("existing.json")).unwrap();
+        let mut imported = collection("unsafe");
+        let mut request = SavedRequest::new_in("unsafe".into(), "Login".into());
+        request.bearer_token = "synthetic-inline-token".into();
+        imported.requests.push(request);
+        let result = write_working_tree(&dir, &[collection("safe"), imported.clone()], "", "");
+        assert!(
+            result.is_err(),
+            "literal credential must not enter a shared snapshot"
+        );
+        assert!(!result.unwrap_err().contains("synthetic-inline-token"));
+        assert!(!dir.join("safe.json").exists());
+        assert!(!dir.join("unsafe.json").exists());
+        assert_eq!(std::fs::read(dir.join("existing.json")).unwrap(), original);
+        assert_eq!(imported.requests[0].bearer_token, "synthetic-inline-token");
+        std::fs::remove_dir_all(dir).unwrap();
+    }
+
+    #[test]
+    fn security_publication_commit_rejects_manually_inserted_secret_snapshot() {
+        let dir = std::env::temp_dir().join(format!("rustman-publish-{}", uuid::Uuid::new_v4()));
+        let repo = open_at(&dir).unwrap();
+        let mut request = SavedRequest::new_in("c1".into(), "Login".into());
+        request.cookie_string = "sid=synthetic-cookie".into();
+        let file = CollectionFile {
+            collection: collection("c1").collection,
+            requests: vec![request],
+            groups: vec![],
+        };
+        std::fs::write(dir.join("c1.json"), serde_json::to_vec(&file).unwrap()).unwrap();
+        let identity = GitIdentity {
+            name: "Test".into(),
+            email: "test@example.test".into(),
+        };
+        assert!(commit(&dir, &identity, "must not publish").is_err());
+        assert!(
+            repo.head().is_err(),
+            "no commit may be created on rejection"
+        );
+        assert!(
+            repo.index().unwrap().is_empty(),
+            "index must remain unchanged"
+        );
+        drop(repo);
+        std::fs::remove_dir_all(dir).unwrap();
+    }
+
     #[test]
     fn vcs_security_rejects_unsafe_ids_before_mutation() {
         let root = std::env::temp_dir().join(format!("rustman-vcs-{}", uuid::Uuid::new_v4()));

@@ -1,0 +1,14 @@
+{
+  "screenshot_ids": [
+    "E11",
+    "E12",
+    "E13",
+    "E14",
+    "E15",
+    "E16"
+  ],
+  "binary_sha256": "3567ecced120562eb35e94ae6f6fe34449fc8c611f63b430e635e9698d4b3582",
+  "binary_mtime_utc": "2026-11-06T00:58:54.361566+00:00",
+  "build_log": "native-eye-build.log",
+  "source_uncommitted": true
+}
